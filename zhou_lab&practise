@@ -1,3 +1,134 @@
+########################## 20210605_Asymptotes.r #####################################
+
+sset <- readIDATpair('~/Downloads/8784225116_R02C02')
+sset <- dyeBiasCorrTypeINorm(noob(sset))
+betas <- getBetas(sset, mask=FALSE)
+intens <- totalIntensities(sset)[names(betas)]
+betafunc <- function(b, x) { b / ((b+0)+(b+x)) }
+betafunc2 <- function(b, x) { (b + x) / ((b+0)+(b+x)) }
+x <- seq(0,20000, by=100)
+b <- median(c(oobG(sset), oobR(sset)))
+smoothScatter(log2(intens),betas, xlab='Log2(intensity)', ylab='Betas')
+lines(log2(x+2*b),betafunc(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas", add=T)
+lines(log2(x+2*b),betafunc2(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas", add=T)
+sset@IR <- pmax(sset@IR - b,1)
+sset@IG <- pmax(sset@IG - b,1)
+sset@II <- pmax(sset@II - b,1)
+betas <- getBetas(sset, mask=FALSE)
+intens <- totalIntensities(sset)[names(betas)]
+
+########################## 20210324_DataMining.r #####################################
+
+# ~/zhoulab/labsoftware/shared_Renv/shims/R4.0.4
+#
+require(data.table)
+t1 <- c()
+files <- list.files(path="/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/samplesheets", pattern=".tsv", full.names=TRUE, recursive=FALSE)
+for(i in 1:length(files)) # collect column names
+{
+  t1 <- c(t1,tolower(colnames(as.data.frame(fread(files[i])))))
+  t1 <- unique(t1)
+}
+
+# Add detail info to the sheet
+df2 <- as.data.frame(fread(files[1]))
+df1 <- data.frame(matrix(NA, nrow = dim(df2)[1], ncol = length(t1)))
+colnames(df1) <- t1
+for(i in 1:dim(df2)[2])
+{
+  index <- which(colnames(df1) == tolower(colnames(df2)[i]))
+  df1[,index] <- df2[,i]
+}
+df1$gse <- gsub('.{33}$', '', unlist(strsplit(files[1], "/"))[8]) # add GSE info
+for(i in 2: length(files))
+{
+  df2 <- as.data.frame(fread(files[i]))
+  df <- data.frame(matrix(NA, nrow = dim(df2)[1], ncol = length(t1)))
+  colnames(df) <- t1
+  for(j in 1:dim(df2)[2])
+  {
+    index <- which(colnames(df) == tolower(colnames(df2)[j]))
+    df[,index] <- df2[,j]
+  }
+  df$gse <- gsub('.{33}$', '', unlist(strsplit(files[i], "/"))[8])
+  df1 <- rbind(df,df1)
+}
+
+# Add platform to it, default is ''. If all the platform type is given, this step can be shorter with group index
+s <- readRDS('~/scr1_wany/sheet/samplesheet.rds')
+s$platform <- ''
+l_epic <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/EPIC')
+l_epic <- gsub('.{12}$', '', l_epic)
+l_hm450 <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/HM450')
+l_hm450 <- gsub('.{12}$', '', l_hm450)
+l_hm27 <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/HM27')
+l_hm27 <- gsub('.{12}$', '', l_hm27)
+l_mammal40 <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/Mammal40')
+l_mammal40 <- gsub('.{12}$', '', l_mammal40)
+
+t <- s[1:dim(s)[1], ]
+
+for(i in 1:dim(t)[1]) 
+{
+  s1 <- t[i,]$geo
+  if(s1 %in% l_epic)
+  {
+    t[i,]$platform <- 'EPIC'
+  }
+  else if(s1 %in% l_hm450)
+  {
+    t[i,]$platform <- 'HM450'
+  }
+  else if(s1 %in% l_hm27)
+  {
+    t[i,]$platform <- 'HM27'
+  }
+  else if(s1 %in% l_mammal40)
+  {
+    t[i,]$platform <- 'Mammal40'
+  }
+}
+
+#files <- list.files(path="/home/wany/scr1_wany/sheet/2040", pattern=".rds", full.names=TRUE, recursive=FALSE)
+#
+#sheet <- readRDS(files[1])
+#
+#for(i in 2:length(files))
+#{
+#  sheet_t <- readRDS(files[i])
+#  sheet <- rbind(sheet,sheet_t)
+#}
+
+########################## 20210319_readGEOloop.sh #####################################
+
+#!/bin/bash
+
+# input: vi file, each line contains a GSE number
+# can't work when series matrix contains other than given format
+# plan to fix tomorrow
+
+link1="https://ftp.ncbi.nlm.nih.gov/geo/series/"
+gz="_series_matrix.txt.gz"
+link3="https://www.ncbi.nlm.nih.gov/geo/download/?acc="
+link4="&format=file"
+
+while read dir; do
+  mkdir $dir
+  cd $dir
+  link2=$link1`echo "$dir" | cut -c1-6`"nnn/"$dir"/matrix/"$dir"_series_matrix.txt.gz"
+  echo $link2
+  wget -c $link2
+  /home/wany/zhoulab/labsoftware/shared_Renv/shims/Rscript4.0.4 /mnt/isilon/zhoulab/labbin/GEOLoadSeriesMatrix.R "${dir}${gz}"
+  mkdir -p IDATs
+  cd IDATs
+  link=$link3$dir$link4
+  echo $link 
+  wget -O file.tar $link
+  tar -xvf file.tar
+  rm file.tar
+  cd ../..
+done <Book
+
 library(sesame)
 
 ########################## LNCaP Beta #####################################
@@ -1180,6 +1311,7 @@ s$cellline[which(s$tissuetype == "NA /+/ H9-NK2.hESCs")] <- "H9-NK2.hESCs"
 s$tissuetype[which(s$tissuetype == "NA /+/ Mutation-positive.Lynch.syndrome.control..Genomic.DNA.from.FFPE.normal.colorectal.mucosa")] <- "colorectal.mucosa"
 
 saveRDS(s,'~/scr1_wany/upload/type/20210605_tissue1.rds')
+
 ######################################################################
 
 library(readxl)
@@ -1204,6 +1336,266 @@ plot(density(as.numeric(s$meanIntensity[!is.na(s$meanIntensity)])),
 
 
 {"mode":"full","isActive":false}
+
+t <- readRDS('~/Desktop/beta_vs_intens/low_input/204221240073_R07C01.rds')
+# t1 is from EPIC.hg38.manifest, contains probeID, MASK.general and chrm information
+t2 <- merge(t,t1,by='probeID')
+t3 <- t2[t2$MASK_general == 'FALSE',]
+
+# smoothScatter(log2(t3$inten),t3$before,
+#              xlim = c(5,15),ylim = c(0,1),xlab = 'log2(inten)', ylab = 'beta',
+#              main = 'R07C01', cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+
+# smoothScatter(log2(t3$inten),t3$after,
+#              xlim = c(5,15),ylim = c(0,1),xlab = 'log2(inten)', ylab = 'beta',
+#              main = 'R07C01', cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+
+t3 <- t3[t3$inten < 2^10,]
+t4 <- t3[t3$before < 0.6 & t3$before > 0.4, ]
+plot(density(t4$after))
+
+# At low intensity, the SCRUB is not working well on un-methylated probes
+# background signals remove
+
+###############################################################
+
+if(! "sesame" %in% tolower((.packages()))){
+  library("sesame")
+  (.packages())
+}
+
+s1 <- readRDS('/home/wany/scr1_wany/Low_input/204221240073_R07C01.rds')
+m <- readRDS('/home/wany/scr1_wany/EPIC.hg38.manifest.rds')
+# m1 contains manifest information of channel and designType
+s1 <- merge(s1,m1,by='probeID')
+
+smoothScatter(log2(type2$inten),type2$before, xlim=c(5,15),ylim=c(0,1), main = 'R07C01: Type II',xlab = 'log2(inten) n=723760',ylab = 'beta',cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+lines(log2(x+2*b),betafunc(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+lines(log2(x+2*b),betafunc2(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+
+smoothScatter(log2(red$inten),red$before, xlim=c(5,15),ylim=c(0,1), main = 'R07C01: Type I Red',xlab = 'log2(inten) n=92218',ylab = 'beta',cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+lines(log2(x+2*b),betafunc(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+lines(log2(x+2*b),betafunc2(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+
+smoothScatter(log2(green$inten),green$before, xlim=c(5,15),ylim=c(0,1),, main = 'R07C01: Type I Grn',xlab = 'log2(inten) n=49940',ylab = 'beta',cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+lines(log2(x+2*b),betafunc(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+lines(log2(x+2*b),betafunc2(b, x), xlim=c(7,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+
+###############################################################
+
+betafunc <- function(b, x) { b / ((b+0)+(b+x)) }
+betafunc2 <- function(b, x) { (b + x) / ((b+0)+(b+x)) }
+x <- seq(0,20000, by=100)
+
+t <- readRDS('~/Desktop/beta_vs_intens/low_input/sample7/sample7.rds')
+type2 <- t[t$designType == 'II',]
+type1 <- t[t$designType == 'I',]
+grn <- type1[type1$channel == 'Grn',]
+red <- type1[type1$channel == 'Red',]
+
+b_grn <- 311
+b_red <- 907
+
+smoothScatter(log2(type2$inten),type2$after, xlim=c(6,15),ylim=c(0,1), main = 'R07C01: Type II',xlab = 'log2(inten) n=723760',ylab = 'beta',cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+lines(log2(x+2*b_red),betafunc(b_red, x), xlim=c(6,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+lines(log2(x+2*b_grn),betafunc2(b_grn, x), xlim=c(6,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+
+smoothScatter(log2(red$inten),red$after, xlim=c(6,15),ylim=c(0,1), main = 'R07C01: Type I Red',xlab = 'log2(inten) n=92218',ylab = 'beta',cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+lines(log2(x+2*b_red),betafunc(b_red, x), xlim=c(6,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+lines(log2(x+2*b_red),betafunc2(b_red, x), xlim=c(6,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+
+smoothScatter(log2(grn$inten),grn$after, xlim=c(6,15),ylim=c(0,1),, main = 'R07C01: Type I Grn',xlab = 'log2(inten) n=49940',ylab = 'beta',cex.axis = 1.2,cex.lab = 1.2,cex.main=1.2)
+lines(log2(x+2*b_grn),betafunc(b_grn, x), xlim=c(6,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+lines(log2(x+2*b_grn),betafunc2(b_grn, x), xlim=c(6,14),ylim=c(0,1), xlab='log2(intensity)', ylab="betas",col='red')
+
+
+t_noob <- readRDS('~/Desktop/beta_vs_intens/low_input/sample7/no_dyeBias_only_noob.rds')
+t_nono <- readRDS('~/Desktop/beta_vs_intens/low_input/sample7/no_dyeBias_no_noob.rds')
+
+t_noob <- as.data.frame(t_noob)
+colnames(t_noob) <- 'noob'
+t_nono <- as.data.frame(t_nono)
+colnames(t_nono) <- 'nono'
+
+t <- cbind(t,t_noob,t_nono)sset.noob.dyebiasIdye
+
+###############################################################
+
+s <- readIDATpair('/home/wany/scr1_wany/IDAT_file/GSE108576/IDATs/GSM2905348_200397860045_R06C02')
+
+sset.noob.dyebiasI <- dyeBiasCorrTypeINorm(noob(s))
+sset.noob.dyebiasI.scrub <- scrub(sset.noob.dyebiasI)
+sset.noob.dyebiasI.scrubSoft <- scrubSoft(sset.noob.dyebiasI)
+
+scrub_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrub))
+scrub_beta <- getBetas(sset.noob.dyebiasI.scrub)
+scrubSoft_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrubSoft))
+scrubSoft_beta <- getBetas(sset.noob.dyebiasI.scrubSoft)
+
+saveRDS(scrub_inten,'/home/wany/scr1_wany/doload/scrub_inten.rds')
+saveRDS(scrub_beta,'/home/wany/scr1_wany/doload/scrub_beta.rds')
+saveRDS(scrubSoft_inten,'/home/wany/scr1_wany/doload/scrubSoft_inten.rds')
+saveRDS(scrubSoft_beta,'/home/wany/scr1_wany/doload/scrubSoft_beta.rds')
+
+quantile(oobG(sset.noob.dyebiasI.scrub),0.8)
+quantile(oobR(sset.noob.dyebiasI.scrub),0.8)
+meanIntensity(s)
+
+scrub_inten <- readRDS('~/Desktop/plot/scrub_inten.rds')
+scrub_beta <- readRDS('~/Desktop/plot/scrub_beta.rds')
+scrubSoft_inten <- readRDS('~/Desktop/plot/scrubSoft_inten.rds')
+scrubSoft_beta <- readRDS('~/Desktop/plot/scrubSoft_beta.rds')
+
+smoothScatter(scrub_inten,scrub_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrub",'GSM2905348_200397860045_R06C02',
+                             2442.432),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v = log2(142.1212),col='green')
+abline(v = log2(228.2383),col='red')
+
+smoothScatter(scrubSoft_inten,
+              scrubSoft_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrubSoft",'GSM2905348_200397860045_R06C02',
+                             2442.432),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v = log2(142.1212),col='green')
+abline(v = log2(228.2383),col='red')
+
+###############################################################
+
+sset <- mclapply(searchIDATprefixes(''), readIDATpair.mc.cores=20)
+mean(sapply(sset,meanIntensity))
+
+###############################################################
+
+
+s <- readIDATpair('/home/wany/scr1_wany/IDAT_file/GSE108576/IDATs/GSM2905348_200397860045_R06C02')
+
+sset.noob.dyebiasI <- dyeBiasCorrTypeINorm(noob(s))
+sset.noob.dyebiasI.scrub <- scrub(sset.noob.dyebiasI)
+sset.noob.dyebiasI.scrubSoft <- scrubSoft(sset.noob.dyebiasI)
+
+scrub_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrub))
+scrub_beta <- getBetas(sset.noob.dyebiasI.scrub)
+scrubSoft_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrubSoft))
+scrubSoft_beta <- getBetas(sset.noob.dyebiasI.scrubSoft)
+
+smoothScatter(scrub_inten,scrub_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrub",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v = quantile(oobG(sset.noob.dyebiasI.scrub),0.8),col='green')
+abline(v = quantile(oobR(sset.noob.dyebiasI.scrub),0.8),col='red')
+abline(v = (quantile(oobG(sset.noob.dyebiasI.scrub),0.8)+quantile(oobR(sset.noob.dyebiasI.scrub),0.8))/2,col='yellow')
+
+smoothScatter(scrubSoft_inten,
+              scrubSoft_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrubSoft",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v = quantile(oobG(sset.noob.dyebiasI.scrub),0.8),col='green')
+abline(v = quantile(oobR(sset.noob.dyebiasI.scrub),0.8),col='red')
+abline(v = (quantile(oobG(sset.noob.dyebiasI.scrub),0.8)+quantile(oobR(sset.noob.dyebiasI.scrub),0.8))/2,col='yellow')
+
+########################### Plotting using R ####################################
+
+library(sesame)
+library(GenomicRanges)
+setwd('~/Desktop/plot')
+s <- readIDATpair('GSM2905348_200397860045_R06C02')
+mft <- readRDS('~/Desktop/HM450.hg38.manifest.rds')
+
+sset.noob.dyebiasI <- dyeBiasCorrTypeINorm(noob(s))
+sset.noob.dyebiasI.scrub <- scrub(sset.noob.dyebiasI)
+sset.noob.dyebiasI.scrubSoft <- scrubSoft(sset.noob.dyebiasI)
+
+scrub_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrub))
+scrub_beta <- getBetas(sset.noob.dyebiasI.scrub)
+scrubSoft_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrubSoft))
+scrubSoft_beta <- getBetas(sset.noob.dyebiasI.scrubSoft)
+
+h_g <- log2(quantile(oobG(sset.noob.dyebiasI.scrub),0.8))
+h_r <- log2(quantile(oobR(sset.noob.dyebiasI.scrub),0.8))
+h_b <- log2((quantile(oobG(sset.noob.dyebiasI.scrub),0.8)+
+               quantile(oobR(sset.noob.dyebiasI.scrub),0.8))/2)
+
+mft <- sesameDataGet('HM450.hg19.manifest')
+pbx <- names(mft[seqnames(mft)=='chrX'])
+pby <- names(mft[seqnames(mft)=='chrY'])
+
+scrub_x_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrub)[pbx])
+scrub_x_beta <- getBetas(sset.noob.dyebiasI.scrub)[pbx]
+scrubSoft_x_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrubSoft)[pbx])
+scrubSoft_x_beta <- getBetas(sset.noob.dyebiasI.scrubSoft)[pbx]
+
+scrub_y_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrub)[pby])
+scrub_y_beta <- getBetas(sset.noob.dyebiasI.scrub)[pby]
+scrubSoft_y_inten <- log2(totalIntensities(sset.noob.dyebiasI.scrubSoft)[pby])
+scrubSoft_y_beta <- getBetas(sset.noob.dyebiasI.scrubSoft)[pby]
+
+par(mfrow=c(3,2))
+
+smoothScatter(scrub_inten,scrub_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrub",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v=h_g,col='green')
+abline(v=h_r,col='red')
+abline(v=h_b,col='blue')
+
+smoothScatter(scrubSoft_inten,scrubSoft_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrubSoft",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v=h_g,col='green')
+abline(v=h_r,col='red')
+abline(v=h_b,col='blue')
+
+smoothScatter(scrub_x_inten,scrub_x_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrubX",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v=h_g,col='green')
+abline(v=h_r,col='red')
+abline(v=h_b,col='blue')
+
+smoothScatter(scrubSoft_x_inten,scrubSoft_x_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrubSoftX",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v=h_g,col='green')
+abline(v=h_r,col='red')
+abline(v=h_b,col='blue')
+
+smoothScatter(scrub_y_inten,scrub_y_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrubY",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v=h_g,col='green')
+abline(v=h_r,col='red')
+abline(v=h_b,col='blue')
+
+smoothScatter(scrubSoft_y_inten,scrubSoft_y_beta,xlab = 'log2(M+U)',ylab = 'Betas',
+              main = sprintf("%s\n%1.2f.scrubSoftY",'GSM2905348_200397860045_R06C02',
+                             meanIntensity(s)),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),xlim = c(0,15))
+abline(h=0.5,lty='dashed')
+abline(v=h_g,col='green')
+abline(v=h_r,col='red')
+abline(v=h_b,col='blue')
+
+
 
 # 07/23/2021
 
