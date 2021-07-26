@@ -1,0 +1,1237 @@
+library(sesame)
+
+########################## LNCaP Beta #####################################
+rm(list = ls())
+s <- readRDS('~/Desktop/plot/LNCaP_ssets.rds')
+smoothScatter(getBetas(s[[1]],mask=TRUE),getBetas(s[[6]],mask=TRUE),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'LNCaP low-input', ylab = 'LNCaP high-input',main = ' Masked Betas')
+smoothScatter(getBetas(s[[1]],mask=FALSE),getBetas(s[[6]],mask=FALSE),nrpoints = 0,
+                   colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                                "orange","red","darkred"),space="Lab"),
+                   xlab = 'LNCaP low-input', ylab = 'LNCaP high-input',main = ' Unmasked Betas')
+
+x1 <- readRDS('~/Desktop/plot/LNCaP/s1_masked.rds')
+y1 <- readRDS('~/Desktop/plot/LNCaP/s6_masked.rds')
+x2 <- readRDS('~/Desktop/plot/LNCaP/s1_unmasked.rds')
+y2 <- readRDS('~/Desktop/plot/LNCaP/s6_unmasked.rds')
+x2 <- readRDS('~/Desktop/plot/mask/GSE156358/low_mask.rds')
+y2 <- readRDS('~/Desktop/plot/mask/GSE156358/high_mask.rds')
+x2 <- readRDS('~/Desktop/plot/mask/GSE161678/low_mask.rds')
+y2 <- readRDS('~/Desktop/plot/mask/GSE161678/high_mask.rds')
+smoothScatter(x2,y2,nrpoints = 0,colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                                "orange","red","darkred"),space="Lab"),
+                   xlab = 'FF low-intens', ylab = 'FF high-intens',main = 'Masked Betas')
+########################## AUC #####################################
+library(pROC)
+temp1 <- readRDS('~/Desktop/plot/ffpe_tpr.rds') #TPR
+temp2 <- readRDS('~/Desktop/plot/ffpe_fpr.rds') #FPR
+temp3 <- readRDS('~/Desktop/plot/fresh_tpr.rds')
+temp4 <- readRDS('~/Desktop/plot/fresh_fpr.rds')
+t <- rep(0, 100)
+f <- rep(1,100)
+m <- c(f,t)
+m1 <- c(as.numeric(temp1[1,][2:101]),as.numeric(temp2[1,][2:101]))
+roc(m,m1)
+
+
+
+########################## total #####################################
+ln_tp <- readRDS('~/Desktop/plot/LNCaP_tp.rds')
+s2 <- readRDS('~/Desktop/plot/gse_108576.rds')
+
+pbx <- readRDS('~/Desktop/plot/pbx.rds')
+pby <- readRDS('~/Desktop/plot/pby.rds')
+
+sset <- s2
+p <- c((sum(pval(sset[[1]])[pby]<0.05)/417) / (sum(pval(sset[[1]])[pbx]<0.05)/11240))
+for(i in 2:89) #pval
+{
+  p <- c(p,(sum(pval(sset[[i]])[pby]<0.05)/417) / (sum(pval(sset[[i]])[pbx]<0.05)/11240))
+}
+
+p1  <- rep(NA, 89)
+male <- c(44,45,48,50,55,58,59,60,61,62,
+          63,64,65,66,67,69,70,71,72,73,
+          75,76,78,79,80,82,83,85,86,87,
+          88,89)
+for(i in 1:32)
+{
+  p1[male[i]] <- p[male[i]]
+}
+plot(p,xlab = 'sample index',ylab='(p_y<0.05) / (p_x<0.05)', main = 'GSE108576',xlim=c(0,90),ylim=c(0,1.3))
+points(1:89,p1,col='red')
+legend('topleft',c("Female","Male"), 
+       lwd=c(2,2,2), col=c("black","red"), y.intersp=1)
+abline(h=0.32)
+abline(h=0.2)
+
+
+inten_ratio <- rep(NA, 89)
+for(i in 1:89) #inten
+{
+  inten_ratio[i] <- mean(totalIntensities(sset[[i]])[pby])/mean(totalIntensities(sset[[i]])[pbx])
+}
+inten_ratio1 <- rep(NA, 89)
+for(i in 1:32)
+{
+  inten_ratio1[male[i]] <- inten_ratio[male[i]]
+}
+plot(inten_ratio,xlab = 'sample index',ylab='mean(y_M+U) / mean(x_M+U)', main = 'GSE108576',xlim=c(0,90),ylim=c(0,1.6))
+points(1:89,inten_ratio1,col='red')
+legend('topleft',c("Female","Male"), 
+       lwd=c(2,2,2), col=c("black","red"), y.intersp=1)
+abline(h=0.42)
+abline(h=0.29)
+
+t <- c()
+for(i in 1:89)
+{
+  if(inten_ratio[i] > 0.2)
+  {t <-c(t,i)}
+}
+
+for(i in 1:length(t))
+{
+  temp1[t[i],] <- NA
+  temp2[t[i],] <- NA
+}
+temp1 <- na.omit(temp1)
+temp2 <- na.omit(temp2)
+
+sset <- mclapply(searchIDATprefixes('~/Desktop/plot/GSE146552_RAW/'),readIDATpair)
+inten_ratio <- rep(NA, 89)
+for(i in 1:38) #inten
+{
+  inten_ratio[i] <- mean(totalIntensities(sset[[i]])[pby])/mean(totalIntensities(sset[[i]])[pbx])
+}
+t <- c()
+for(i in 1:38)
+{
+  if(inten_ratio[i] > 0.2)
+  {t <-c(t,i)}
+}
+for(i in 1:length(t))
+{
+  temp3[t[i],] <- NA
+  temp4[t[i],] <- NA
+}
+temp3 <- na.omit(temp3)
+temp4 <- na.omit(temp4)
+
+plot(as.numeric(temp4[11,][2:101]),as.numeric(temp3[11,][2:101]),type="l",
+     col="green", lwd=1,xlim=c(0,1), ylim=c(0,1),
+     xlab="FPR",ylab="TPR",main="ROC: FFPE(n=54),Fresh(n=36)")
+for(i in 1:54)
+{
+  lines(as.numeric(temp2[i,][2:101]),as.numeric(temp1[i,][2:101]),type="l",
+        col="red", lwd=1) 
+}
+for(i in 1:36)
+{
+  lines(as.numeric(temp4[i+1,][2:101]),as.numeric(temp3[i+1,][2:101]),type="l",
+        col="#239B56", lwd=1)
+}
+legend('bottomright',c("FFPE","Fresh"), lwd=c(1,1), col=c("red","green"), y.intersp=1)
+abline(coef = c(0,1))
+
+temp1 <- readRDS('~/Desktop/plot/ffpe_female_tpr.rds') #TPR
+temp2 <- readRDS('~/Desktop/plot/ffpe_female_fpr.rds') #FPR
+temp3 <- readRDS('~/Desktop/plot/fresh_female_tpr.rds')
+temp4 <- readRDS('~/Desktop/plot/fresh_female_fpr.rds')
+
+df1 <- t(rbind(as.numeric(temp1[2,][2:101]),
+               as.numeric(temp2[2,][2:101]),rep(round(t/1000), 100)))
+colnames(df1) <- c('values1','values2','values3')
+df1 <- data.frame(df1)
+ggplot(df1, aes(values2, values1)) +                     
+  geom_line(aes(color = values3), size = 0.5) +
+  scale_color_gradient(low = "yellow", high = "darkblue") 
+
+
+
+plot(as.numeric(temp2[1,][2:101]),as.numeric(temp1[1,][2:101]),type="l",
+     col='#922B21', lwd=1,xlim=c(0,1), ylim=c(0,1),
+     xlab="FPR",ylab="TPR",main="ROC: FFPE(n=54),Fresh(n=36)")
+for(i in 1:54) # min 1196.694, max 5983.851
+{
+  c <- as.numeric(temp2[i,][1])
+  if(c<=-1.194785)
+  {
+    coul <- '#641E16'
+  }
+  else if(c <= -0.7434105)
+  {
+    coul <- '#922B21'
+  }
+  else if(c <= -0.2774705)
+  {
+    coul <- '#A93226'
+  }
+  else if(c <= 0.02444878)
+  {
+    coul <- '#C0392B'
+  }
+  else if(c <= 0.40370460)
+  {
+    coul <- '#CD6155'
+  }
+  else if(c <= 0.5576623)
+  {
+    coul <- '#D98880'
+  }
+  else if(c <= 1.1503331)
+  {
+    coul <- '#E6B0AA'
+  }
+  else # 1.704002
+  {
+    coul <- '#F9EBEA'
+  }
+  lines(as.numeric(temp2[i,][2:101]),as.numeric(temp1[i,][2:101]),type="l",
+        col=coul, lwd=1) 
+}
+
+for(i in 1:54)
+{
+  x <- c(x,auc(roc(t,c(as.numeric(temp1[i,][2:101]),as.numeric(temp2[i,][2:101])))))
+}
+
+########################## total #####################################
+sset <- readRDS('~/Desktop/plot/melanoma.rds')
+
+# /mnt/isilon/zhou_lab/projects/20191212_GEO_datasets #
+
+p <- '/home/wany/scr1_wany/IDAT_file/GSE118250'
+res <- mclapply(searchIDATprefixes(p), readIDATpair,mc.cores=10)
+res <- lapply(searchIDATprefixes(p), readIDATpair)
+
+x <- data.frame(matrix(NA, nrow = length(res), ncol = 6))
+colnames(x) <- c('GSM','GSE','Class','meanInten','Platform','Path')
+t <-c()
+for(i in 1:length(res))
+{
+  t <- c(t,meanIntensity(res[[i]]))
+}
+
+x[,1] <- names(res)
+x[,2] <- 'GSE143755' #
+x[,3] <- 'FFPE' #
+x[,4] <- t
+x[,5] <- 'HM450' #
+x[,6] <- p
+
+saveRDS(x,paste(p,'/intens.rds',sep=''))
+rm(list = ls())
+
+########################## meanIntens #####################################
+t1 <- readRDS('~/Desktop/plot/meanIntens.rds')
+t2 <- readRDS('~/Desktop/plot/meanIntens2.rds')
+colnames(t1) <- c('GSM','GSE','Class','meanInten','Platform','Path','SuccessRate')
+colnames(t2) <- c('GSM','GSE','Class','meanInten','Platform','Path','SuccessRate')
+t <- rbind(t1,t2)
+library('ggplot2')
+library("beeswarm")
+library('ggbeeswarm')
+beeswarm(meanInten ~ GSE, data=t, method = 'swarm')
+beeswarm(meanInten ~ GSE, data=t, method = 'swarm',col=sample(colors(), 27), pch=19, cex=0.5)
+
+FFPE_HM450 <- subset(t,Class=='FFPE' & Platform=='HM450')
+FF_HM450 <- subset(t,Class=='FF' & Platform=='HM450')
+FFPE_EPIC <- subset(t,Class=='FFPE' & Platform=='EPIC')
+FF_EPIC <- subset(t,Class=='FF' & Platform=='EPIC')
+Saliva_HM450 <- subset(t,Class=='Saliva' & Platform=='HM450')
+Saliva_EPIC <- subset(t,Class=='Saliva' & Platform=='EPIC')
+
+par(mfrow=c(3,2))
+beeswarm(meanInten ~ GSE, data=FFPE_HM450, method = 'swarm',col=c('red','green','blue','orange','purple','yellow'), pch=20, cex=0.3,main = 'FFPE_HM450',ylim = c(0,14000))
+beeswarm(meanInten ~ GSE, data=FF_HM450, method = 'swarm',col=c('red','green','blue','orange','purple'), pch=20, cex=0.3,main = 'FF_HM450',ylim = c(0,14000))
+beeswarm(meanInten ~ GSE, data=FFPE_EPIC, method = 'swarm',col=c('red','green','blue','orange','purple'), pch=20, cex=0.3,main = 'FFPE_EPIC',ylim = c(0,10000))
+beeswarm(meanInten ~ GSE, data=FF_EPIC, method = 'swarm',col=c('red','green','blue','orange','purple','yellow'), pch=20, cex=0.3,main = 'FF_EPIC',ylim = c(0,10000))
+beeswarm(meanInten ~ GSE, data=Saliva_HM450, method = 'swarm',col=c('red','green','blue'), pch=20, cex=0.3,main = 'Saliva_HM450',ylim = c(0,8000))
+beeswarm(meanInten ~ GSE, data=Saliva_EPIC, method = 'swarm',col=c('red','green','blue'), pch=20, cex=0.3,main = 'Saliva_EPIC',ylim = c(0,8000))
+
+beeswarm(meanInten ~ GSE, data=t_new1, method = 'swarm',
+         col=c('red','green','blue','orange','purple','yellow',
+               'brown','cyan','black','bisque','coral','aquamarine'),
+         pch=19, cex=0.5,horizontal=FALSE)
+
+beeswarm(meanInten ~ GSE, data=t, method = 'swarm',
+         col=sample(colors(), 27),corral = 'random',pch=19, cex=0.5,horizontal=FALSE)
+
+ggplot(t,aes(GSE,meanInten)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_beeswarm(priority='random',cex=0.3)
+
+########################## by type
+t_new <- t
+t1 <- subset(t_new,Class=='FFPE' & Platform=='HM450')
+t2 <- subset(t_new,Class=='FFPE' & Platform=='EPIC')
+t3 <- subset(t_new,Class=='FF' & Platform=='HM450')
+t4 <- subset(t_new,Class=='FF' & Platform=='EPIC')
+t5 <- subset(t_new,Class=='Saliva' & Platform=='HM450')
+t6 <- subset(t_new,Class=='Saliva' & Platform=='EPIC')
+t1$order <- 'FFPE & HM450 \n n = 791'
+t2$order <- 'FFPE & EPIC \n n = 193'
+t3$order <- 'FF & HM450 \n n = 281'
+t4$order <- 'FF & EPIC \n n = 513'
+t5$order <- 'Saliva & HM450 \n n = 97'
+t6$order <- 'Saliva & EPIC \n n = 328'
+level_order <- c('FFPE & HM450 \n n = 791','FFPE & EPIC \n n = 193','FF & HM450 \n n = 281',
+                 'FF & EPIC \n n = 513','Saliva & HM450 \n n = 97','Saliva & EPIC \n n = 328')
+t_new <-rbind(t1,t2,t3,t4,t5,t6)
+ggplot(t_new,aes(x=factor(order,level=level_order),y=meanInten)) + 
+  theme(axis.text.x = element_text(angle = 55, vjust = 0.45, hjust=0.5)) +
+  geom_beeswarm(priority='random',cex=0.4) + labs(title="",
+  x ="Type of tissue & Platform", y = "Mean Intensity") + 
+  theme(axis.title.x = element_text(color="black", size=12, face="bold"),
+    axis.title.y = element_text(color="black", size=12, face="bold")) + 
+  geom_boxplot() + stat_summary(fun=mean, geom="point", shape=23, size=4)
+
+########################## by type
+ggplot(t,aes(GSE,meanInten)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_beeswarm(priority='random',cex=0.3) + theme(axis.title.x = element_text(color="black", size=12, face="bold"),
+                                                   axis.title.y = element_text(color="black", size=12, face="bold"))
+
+########################## by type
+t_new <- t
+t_new[t_new$GSE=='GSE140124'&t_new$Platform=='EPIC',]$GSE <- 'EPIC FFPE GSE140124'
+t_new[t_new$GSE=='GSE140124'&t_new$Platform=='HM450',]$GSE <- 'HM450 FFPE GSE140124'
+t_new[t_new$GSE=='GSE124617'&t_new$Platform=='EPIC',]$GSE <- 'EPIC FFPE GSE124617'
+t_new[t_new$GSE=='GSE124617'&t_new$Platform=='HM450',]$GSE <- 'HM450 FFPE GSE124617'
+t_new[t_new$GSE=='GSE138221'&t_new$Platform=='EPIC',]$GSE <- 'EPIC FFPE GSE138221'
+t_new[t_new$GSE=='GSE138221'&t_new$Platform=='HM450',]$GSE <- 'HM450 FFPE GSE138221'
+t_new[t_new$GSE=='GSE111165'&t_new$Platform=='EPIC',]$GSE <- 'EPIC Saliva GSE111165'
+t_new[t_new$GSE=='GSE111165'&t_new$Platform=='HM450',]$GSE <- 'HM450 Saliva GSE111165'
+t_new[t_new$GSE=='GSE156090'&t_new$Class=='FFPE',]$GSE <- 'EPIC FFPE GSE156090'
+t_new[t_new$GSE=='GSE156090'&t_new$Class=='FF',]$GSE <- 'EPIC FF GSE156090'
+t_new[t_new$GSE=='GSE112047',]$GSE <- 'HM450 FFPE GSE112047'
+t_new[t_new$GSE=='GSE156876',]$GSE <- 'HM450 FFPE GSE156876'
+t_new[t_new$GSE=='GSE156374',]$GSE <- 'EPIC FFPE GSE156374'
+t_new[t_new$GSE=='GSE152653',]$GSE <- 'EPIC FFPE GSE152653'
+t_new[t_new$GSE=='GSE156358',]$GSE <- 'EPIC FFPE GSE156358'
+t_new[t_new$GSE=='GSE138072',]$GSE <- 'EPIC FF GSE138072'
+t_new[t_new$GSE=='GSE110724',]$GSE <- 'HM450 FF GSE110724'
+t_new[t_new$GSE=='GSE102119',]$GSE <- 'HM450 FF GSE102119'
+t_new[t_new$GSE=='GSE94462',]$GSE <- 'HM450 FF GSE94462'
+t_new[t_new$GSE=='GSE161678',]$GSE <- 'EPIC FF GSE161678'
+t_new[t_new$GSE=='GSE138279',]$GSE <- 'HM450 Saliva GSE138279'
+t_new[t_new$GSE=='GSE118260',]$GSE <- 'HM450 Saliva GSE118260'
+t_new[t_new$GSE=='GSE112314',]$GSE <- 'HM450 Saliva GSE112314'
+
+
+t_new[t_new$GSE=='GSE117439',]$GSE <- 'HM450 FFPE GSE117439'
+t_new[t_new$GSE=='GSE108576',]$GSE <- 'HM450 FFPE GSE108576'
+t_new[t_new$GSE=='GSE143755',]$GSE <- 'HM450 FFPE GSE143755'
+t_new[t_new$GSE=='GSE120878',]$GSE <- 'HM450 FFPE GSE120878'
+t_new[t_new$GSE=='GSE129364',]$GSE <- 'HM450 FFPE GSE129364'
+t_new[t_new$GSE=='GSE72251',]$GSE <- 'HM450 FFPE GSE72251'
+t_new[t_new$GSE=='GSE162984',]$GSE <- 'EPIC FFPE GSE162984'
+t_new[t_new$GSE=='GSE134089',]$GSE <- 'EPIC FFPE GSE134089'
+t_new[t_new$GSE=='GSE119260',]$GSE <- 'EPIC FFPE GSE119260'
+t_new[t_new$GSE=='GSE100850',]$GSE <- 'EPIC FFPE GSE100850'
+t_new[t_new$GSE=='GSE112308',]$GSE <- 'EPIC FFPE GSE112308'
+
+t_new[t_new$GSE=='GSE103541',]$GSE <- 'EPIC FF GSE103541'
+t_new[t_new$GSE=='GSE142141',]$GSE <- 'EPIC FF GSE142141'
+t_new[t_new$GSE=='GSE151732',]$GSE <- 'EPIC FF GSE151732'
+t_new[t_new$GSE=='GSE161651',]$GSE <- 'EPIC FF GSE161651'
+t_new[t_new$GSE=='GSE153211',]$GSE <- 'EPIC FF GSE153211'
+t_new[t_new$GSE=='GSE35069',]$GSE <- 'HM450 FF GSE35069'
+t_new[t_new$GSE=='GSE156968',]$GSE <- 'HM450 FF GSE156968'
+t_new[t_new$GSE=='GSE86258',]$GSE <- 'HM450 FF GSE86258'
+t_new[t_new$GSE=='GSE104376',]$GSE <- 'HM450 FF GSE104376'
+t_new[t_new$GSE=='GSE90871',]$GSE <- 'HM450 FF GSE90871'
+
+t_new[t_new$GSE=='GSE111631',]$GSE <- 'EPIC Saliva GSE111631'
+t_new[t_new$GSE=='GSE147318',]$GSE <- 'EPIC Saliva GSE147318'
+t_new[t_new$GSE=='GSE151485',]$GSE <- 'EPIC Saliva GSE151485'
+t_new[t_new$GSE=='GSE119078',]$GSE <- 'HM450 Saliva GSE119078'
+t_new[t_new$GSE=='GSE118250',]$GSE <- 'HM450 Saliva GSE118250'
+t_new[t_new$GSE=='GSE148000',]$GSE <- 'HM450 Saliva GSE148000'
+
+ggplot(t_new,aes(GSE,SuccessRate,color=factor(Class))) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_beeswarm(priority='random',cex=0.1) + 
+  theme(axis.title.x = element_text(color="black", size=12, face="bold"),
+        axis.title.y = element_text(color="black", size=12, face="bold")) +
+  labs(title="All Samples", x ="Type of tissue & Sample order", y = "Success Rate") +
+  scale_y_continuous(limits = c(0, 1))
+
+t_85 <- subset(t_new,SuccessRate > 0.85)
+########################## Wanding's code #####################################
+t_new$x <- unite(t_new, 'sample',c('Class','Platform','GSE'))
+library('ggplot2')
+library("beeswarm")
+library('ggbeeswarm')
+########################## fail rate #####################################
+p <- '/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/GSE35069/IDATs/' # IDAT location
+intens <- readRDS('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/GSE35069/intens.rds') # intens location
+res <- mclapply(searchIDATprefixes(p), readIDATpair,mc.cores=10)
+res <- lapply(searchIDATprefixes(p), readIDATpair)
+
+t <- c()
+for(i in 1:length(res))
+{
+  t <- c(t,sum(pval(res[[i]])<0.05)/length(pval(res[[1]])))
+}
+intens$FailRate <- t
+saveRDS(intens,'/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/GSE35069/meanIntens.rds')
+rm(list = ls())
+
+intens <- readRDS('/home/wany/zhoulab/labprojects/20201203_sesame_detection/intens.rds')
+t <- unique(intens$Path)
+t <- t[-c(17)]
+for(p in t)
+{
+  res <- lapply(searchIDATprefixes(p), readIDATpair)
+  path <- paste(p,'/intens.rds',sep='')
+  intens1 <- readRDS(path)
+  t1 <- c()
+  for(i in 1:length(res))
+  {
+    t1 <- c(t1,sum(pval(res[[i]])<0.05)/length(pval(res[[1]])))
+  }
+  intens1$FailRate <- t1
+  saveRDS(intens1,path)
+}
+
+
+########################## Data2's code #####################################
+p <- '/home/wany/scr1_wany/IDAT_file/Data2/GSE161678'
+res <- lapply(searchIDATprefixes(p), readIDATpair)
+
+epic <- c()
+hm450 <- c()
+
+for(i in 1:length(res))
+{
+  if(length(pval(res[[i]])) == 865918)
+  {
+    epic <- c(epic,res[[i]])
+  }
+  else
+  {
+    hm450 <- c(hm450,res[[i]])
+  }
+}
+
+x1 <- data.frame(matrix(NA, nrow = length(epic), ncol = 7))
+x2 <- data.frame(matrix(NA, nrow = length(hm450), ncol = 7))
+colnames(x1) <- c('GSM','GSE','Class','meanInten','Platform','Path','FailRate')
+colnames(x2) <- c('GSM','GSE','Class','meanInten','Platform','Path','FailRate')
+t1 <-c()
+t2 <-c()
+t3 <- c()
+t4 <- c()
+for(i in 1:length(epic))
+{
+  t1 <- c(t1,meanIntensity(epic[[i]]))
+  t3 <- c(t3,sum(pval(epic[[i]])<0.05)/865918)
+}
+for(i in 1:length(hm450))
+{
+  t2 <- c(t2,meanIntensity(hm450[[i]]))
+  t4 <- c(t4,sum(pval(hm450[[i]])<0.05)/485577)
+}
+x1$meanInten <- t1
+x2$meanInten <- t2
+x1$FailRate <- t3
+x2$FailRate <- t4
+
+x[,1] <- names(res)
+x[,2] <- 'GSE143755' #
+x[,3] <- 'FFPE' #
+x[,4] <- t
+x[,5] <- 'HM450' #
+x[,6] <- p
+
+saveRDS(x,paste(p,'/intens.rds',sep=''))
+rm(list = ls())
+
+########################## Data2's code #####################################
+
+p <- '/home/wany/scr1_wany/IDAT_file/Data2/GSE132804'
+res <- lapply(searchIDATprefixes(p), readIDATpair)
+
+x <- data.frame(matrix(NA, nrow = length(res), ncol = 7))
+colnames(x) <- c('GSM','GSE','Class','meanInten','Platform','Path','FailRate')
+t1 <-c()
+t2 <-c()
+t3 <- c()
+for(i in 1:length(res))
+{
+  t1 <- c(t1,meanIntensity(res[[i]]))
+  t2 <- c(t2,sum(pval(res[[i]])<0.05)/length(pval(res[[i]])))
+  if(length(pval(res[[i]])) == 485577)
+  {
+    t3 <- c(t3,'HM450')
+  }
+  else
+  {
+    t3 <- c(t3,'EPIC')
+  }
+}
+x$meanInten <- t1
+x$FailRate <- t2
+
+x[,1] <- names(res)
+x[,2] <- 'GSE132804' #
+x[,3] <- 'FF' #
+x[,5] <- t3 
+x[,6] <- p
+
+saveRDS(x,paste(p,'/intens.rds',sep=''))
+rm(list = ls())
+
+########################## Data3's code #####################################
+
+p <- '~/Desktop/plot/mask/GSE139687_FF'
+  
+res <- lapply(searchIDATprefixes(p), readIDATpair)
+
+for(i in 1:length(res))
+{
+  if(meanIntensity(res[[i]]) > 5500)
+  {
+    print(i)
+    print(meanIntensity(res[[i]]))
+  }
+}
+
+t1 <- res[[3]] 
+t2 <- res[[12]] 
+
+i <- pval(t1) > 0.05
+
+smoothScatter(getBetas(t1)[i],
+              getBetas(t2)[i],xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'FF Beta: probe=439014 cor=0.8479', ylab = 'FF Beta',main = 'GSE139687_Original (masked)')
+
+smoothScatter(getBetas(t1)[i],
+              getBetas(t2)[i],xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'Low-input Beta\nN=27 Probe=376323', ylab = 'High-input Beta',main = 'LNCaP (masked)')
+
+
+########################## Scrub's code #####################################
+
+p <- '~/Desktop/plot/mask/GSE139687_FF'
+
+res <- lapply(searchIDATprefixes(p), readIDATpair)
+
+t1 <- dyeBiasCorrTypeINorm(noob(res[[3]]))
+b1 <- median(c(oobG(t1), oobR(t1)))
+t1@IR <- pmax(t1@IR - b1,1)
+t1@IG <- pmax(t1@IG - b1,1)
+t1@II <- pmax(t1@II - b1,1)
+
+# t2 <- dyeBiasCorrTypeINorm(noob(res[[12]])) 
+# b2 <- median(c(oobG(t2), oobR(t2)))
+# t2@IR <- pmax(t2@IR - b2,1)
+# t2@IG <- pmax(t2@IG - b2,1)
+# t2@II <- pmax(t2@II - b2,1)
+
+i1 <- pval(t1) > 0.2 #
+i2 <- pval(t1) < 0.2
+i3 <- pval(t1) > 0.05
+i4 <- pval(t1) < 0.05
+
+t2 <- res[[12]] # high intensity reading makes bio-sense, no background subtraction
+
+smoothScatter(getBetas(t1)[i1&i4], # when i <- pval(t1) < 0.2 
+              getBetas(t2)[i1&i4],xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'FF Beta (low input)\nprobe=617647, cor=0.9108139', ylab = 'FF Beta (high input)',main = 'GSE139687_pvalue<0.2 (unmasked)')
+
+smoothScatter(getBetas(t1)[i], # when i <- pval(t1) > 0.2
+              getBetas(t2)[i],xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'FF Beta (low input)\nprobe=248271 cor=0.7415404', ylab = 'FF Beta (high input)',main = 'GSE139687_pvalue>0.2 (masked)')
+
+pdf(file = "~/Desktop/plot/upload/unmasked.pdf",width = 5,height = 4) # don't work
+
+
+
+smoothScatter(t$tcga,
+              t$hm450,xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'WGBS', ylab = 'HM450',main = 'HM450 vs WGBS')
+abline(coef = c(0,1),col="red", lwd=3, lty=2)
+
+
+t <- readRDS('~/Desktop/hm450_vs_wgbs/compare/compare_A2LA.rds')
+t1 <- na.omit(t)
+plot(density(as.numeric(t1$hm450)-as.numeric(t1$tcga),bw = 0.05),main='A2LA Beta: HM450 - WGBS')
+abline(v = 0, col="red", lwd=3, lty=2)
+
+t <- readRDS('~/Desktop/hm450_vs_wgbs/compare/compare_A13J.rds')
+t1 <- na.omit(t)
+library(ggplot2)
+t2 <- data.frame(matrix(NA, nrow = dim(t1)[1], ncol = 2))
+t3 <- data.frame(matrix(NA, nrow = dim(t1)[1], ncol = 2))
+colnames(t2) <- c('SCRUB','diff')
+colnames(t3) <- c('SCRUB','diff')
+t2$SCRUB <- 'YES'
+t3$SCRUB <- 'NO'
+t2$diff <- t1$after-as.numeric(t1$tcga)
+t3$diff <- t1$before-as.numeric(t1$tcga)
+t4 <- rbind(t2,t3)
+p4 <- ggplot(t4,aes(x=diff, color=SCRUB)) + geom_density() + # be aware of losing data at 0.5 boundary 
+  geom_vline(aes(xintercept=0),color="red", linetype="dashed", size=0.5) +  xlim(-0.5, 0.5) +
+  ggtitle("A13J") + theme(axis.text=element_text(size=14),
+                          axis.title=element_text(size=14))
+
+par(mfrow=c(2,1))
+
+multiplot(p1, p2, p3, p4, cols=2)
+
+########################## 2*2 threshold compare #####################################
+
+p <- '~/Desktop/plot/mask/GSE139687_FF'
+
+res <- lapply(searchIDATprefixes(p), readIDATpair)
+
+noob_low <- noob(res[[3]])
+scrub_low <- scrub(res[[3]])
+no_low <- res[[3]]
+scrubsoft <- scrubSoft(res[[3]])
+scrubSoft_noob <- scrubSoft(noob(res[[3]]))
+scrub_noob <- scrub(noob(res[[3]]))
+
+t1 <- dyeBiasCorrTypeINorm(noob_low) # dyebias + noob
+t1 <- dyeBiasCorrTypeINorm(scrub_low) # dyebias + scrub
+#t3 <- dyeBiasCorrTypeINorm(no_low) # dyebias + nothing
+t1 <- dyeBiasCorrTypeINorm(scrubsoft)
+#t6 <- dyeBiasCorrTypeINorm(scrubSoft_noob)
+#t7 <- dyeBiasCorrTypeINorm(scrub_noob)
+#t8 <- res[[3]]
+
+t4 <- res[[12]]
+
+i1 <- pval(t1) > 0.2 # t1 t2 t3 
+i2 <- pval(t1) < 0.2
+i3 <- pval(t1) > 0.05
+i4 <- pval(t1) < 0.05
+
+par(mfrow=c(2,2))
+par(oma=c(2,2,2,2))
+par(mar = c(3, 4, 2, 2))
+
+smoothScatter(getBetas(t1)[i4], # p < 0.05 & p < 0.2
+              getBetas(t4)[i4],xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'probe=426904', ylab = 'p<0.05 (F)',
+              font.main = 1,main = 'p<0.2 (F)',cex.main=1,cex.axis=1)
+mtext("n=426904",side=1,line=2,cex=0.7)
+
+plot(1, type="n", xlab="probe=0", 
+     ylab="", xlim=c(0, 1), ylim=c(0, 1),font.main = 1,main = 'p>0.2 (T)',cex.main=1,cex.axis=1)
+mtext("n=0",side=1,line=2,cex=0.7)
+
+smoothScatter(getBetas(t1)[i2&i3], # p > 0.05 & p < 0.2  
+              getBetas(t4)[i2&i3],xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'probe=190743', ylab = 'p>0.05 (T)',cex.axis=1)
+mtext("n=190743",side=1,line=2,cex=0.7)
+
+
+smoothScatter(getBetas(t1)[i1], # p < 0.05 & p < 0.2  
+              getBetas(t4)[i1],xlim = c(0,1),ylim=c(0,1),nrpoints = 0,
+              colramp = colorRampPalette(c("white","white","lightblue","blue","green","yellow",
+                                           "orange","red","darkred"),space="Lab"),
+              xlab = 'probe=248271',ylab="",cex.axis=1)
+mtext("n=248271",side=1,line=2,cex=0.7)
+
+mtext("Low Input: mean = 3500.006",side=1,line=0,outer=TRUE,cex=1.0)
+mtext("High Input: mean = 5789.523",side=2,line=0,outer=TRUE,cex=1.0,las=0)
+# mtext("", outer=TRUE,  cex=1, line=-1.25)
+mtext("Cell Line: MB231 (dyebias+scrubsoft)", side=3, line=-0.4, cex=1,outer=TRUE)  
+
+########################## delta beta compare #####################################
+
+p <- '~/Desktop/plot/download/A13J/'
+res <- lapply(searchIDATprefixes(p), readIDATpair)[[1]]
+compare <- readRDS('~/Desktop/hm450_vs_wgbs/compare/compare_A2LA.rds') # before and after beta are from openSesame
+
+t1 <- data.frame(getBetas(res)) # raw
+t2 <- data.frame(getBetas(noob(res))) # noob
+t3 <- data.frame(getBetas(scrub(res))) # scrub
+
+colnames(t1) <- 'raw'
+colnames(t2) <- 'noob'
+colnames(t3) <- 'scrub'
+
+t1$probeID <- rownames(t1)
+t2$probeID <- rownames(t2)
+t3$probeID <- rownames(t3)
+
+compare <- merge(compare,t1,by='probeID')
+compare <- merge(compare,t2,by='probeID')
+compare <- merge(compare,t3,by='probeID')
+
+colnames(compare) <- c('probeID','wgbs','hm450os','osBeta','osBetaScrub','raw','noob','scrub')
+
+library(ggplot2)
+t1 <- data.frame(matrix(NA, nrow = dim(compare)[1], ncol = 2))
+t2 <- t1
+t3 <- t1
+colnames(t1) <- c('DeltaBeta','diff'); t1$DeltaBeta <- 'raw-wgbs'
+colnames(t2) <- c('DeltaBeta','diff'); t2$DeltaBeta <- 'noob-wgbs'
+colnames(t3) <- c('DeltaBeta','diff'); t3$DeltaBeta <- 'scrub-wgbs'
+t1$diff <- compare$raw-as.numeric(compare$wgbs)
+t2$diff <- compare$noob-as.numeric(compare$wgbs)
+t3$diff <- compare$scrub-as.numeric(compare$wgbs)
+t4 <- rbind(t1,t2,t3)
+p4 <- ggplot(t4,aes(x=diff, color=DeltaBeta)) + geom_density() + # be aware of losing data at 0.5 boundary 
+  geom_vline(aes(xintercept=0),color="red", linetype="dashed", size=0.5) +  xlim(-0.5, 0.5) +
+  ggtitle("A13J") + theme(axis.text=element_text(size=14),axis.title=element_text(size=14)) +
+  xlab("Beta difference") + ylab("Density")
+
+########################## delta beta compare (LNCaP) #####################################
+
+par(mfrow=c(2,3))
+res <- readRDS('~/Desktop/plot/LNCaP/LNCaP_ssets.rds')
+library(data.table)
+w <- as.data.frame(fread("~/Desktop/plot/download/LNCaP_EPIC.tsv"))
+w <- w[-c(2:3)]
+colnames(w) <- c('probeID','wgbs')
+name <- c('204221240073_R01C01','204221240073_R02C01','204221240073_R03C01',
+          '204221240073_R04C01','204221240073_R05C01','204221240073_R06C01')
+library(sesame)
+
+for(i in 1:6)
+{
+  r <- data.frame(getBetas((res[[i]])))
+  n <- data.frame(getBetas((noob(res[[i]]))))
+  s <- data.frame(getBetas((scrub(res[[i]]))))
+  ss <- data.frame(getBetas((scrubSoft(res[[i]]))))
+  inten <- data.frame(totalIntensities(res[[i]]))
+  t1 <- cbind(r,n,s,ss,inten)
+  w1 <- t1[ order(row.names(t1)), ]
+  colnames(w1) <- c('raw','noob','scrub','scrubsoft','inten')
+  t <- data.frame(pval(res[[i]]))
+  w$p <- t[ order(row.names(t)), ]
+  w$raw <- w1$raw
+  w$noob <- w1$noob
+  w$scrub <- w1$scrub
+  w$scrubsoft <- w1$scrubsoft
+  w$inten <- w1$inten
+  rownames(w) <- 1:dim(w)[1]
+  wx <- subset(w,p<=0.05)
+  # ↑↑ plot(density(na.omit(getBetas(detectionMask(scrub(s[[1]]), pval.threshold = 0.05)))))
+  
+  t1 <- data.frame(matrix(NA, nrow = dim(wx)[1], ncol = 2))
+  t2 <- t1
+  t3 <- t1
+  t4 <- t1
+  colnames(t1) <- c('DeltaBeta','diff'); t1$DeltaBeta <- 'raw'
+  colnames(t2) <- c('DeltaBeta','diff'); t2$DeltaBeta <- 'noob'
+  colnames(t3) <- c('DeltaBeta','diff'); t3$DeltaBeta <- 'scrub'
+  colnames(t4) <- c('DeltaBeta','diff'); t4$DeltaBeta <- 'scrubsoft'
+  t1$diff <- wx$raw-as.numeric(wx$wgbs)
+  t2$diff <- wx$noob-as.numeric(wx$wgbs)
+  t3$diff <- wx$scrub-as.numeric(wx$wgbs)
+  t4$diff <- wx$scrubsoft-as.numeric(wx$wgbs)
+  t5 <- rbind(t1,t2,t3,t4)
+  t1 <- mean(na.omit(abs(t1$diff)))
+  t2 <- mean(na.omit(abs(t2$diff)))
+  t3 <- mean(na.omit(abs(t3$diff)))
+  t4 <- mean(na.omit(abs(t4$diff)))
+  str = paste("noob =", format(round(t2, 4), nsmall = 4),
+              ", raw =", format(round(t1, 4), nsmall = 4),
+              ", scrub =", format(round(t3, 4), nsmall = 4),
+              ", scrubSoft =", format(round(t4, 4), nsmall = 4))
+  p <- ggplot(t5,aes(x=diff, color=DeltaBeta)) + geom_density(adjust = 0.2) + # be aware of losing data at 0.5 boundary 
+    geom_vline(aes(xintercept=t1),color="seagreen3", linetype="dashed", size=0.5) +  
+    geom_vline(aes(xintercept=t2),color="tomato", linetype="dashed", size=0.5) + 
+    geom_vline(aes(xintercept=t3),color="steelblue3", linetype="dashed", size=0.5) + 
+    geom_vline(aes(xintercept=t4),color="darkorchid1", linetype="dashed", size=0.5) +
+    xlim(-0.5, 0.5) +
+    ggtitle(name[i]) + theme(axis.text=element_text(size=14),axis.title=element_text(size=14)) +
+    xlab("Delta Beta:p=0.2") + ylab("Density") + theme(legend.title = element_text(size=12, color = "gray48", face="bold"),
+                                                     legend.justification=c(0,1), 
+                                                     legend.position=c(0.05, 0.95),
+                                                     legend.background = element_blank(),
+                                                     legend.key = element_blank()) + 
+    labs(subtitle=str)
+  assign(paste0("p", i), p)
+}
+
+library(Rmisc) # for multiplot
+multiplot(p1,p2,p3, p4,p5,p6, cols=3)
+
+smoothScatter(w$scrubsoft,w$wgbs,xlab = 'scrubsoft',ylab = 'wgbs',main='linear')
+smoothScatter(w$scrubsoft,w$raw,xlab = 'scrubsoft',ylab = 'raw',main='linear')
+smoothScatter(w$noob,w$wgbs,xlab = 'noob',ylab = 'raw',main='linear')
+smoothScatter(w$noob,w$raw,xlab = 'noob',ylab = 'raw',main='linear')
+
+temp <- data.frame(totalIntensities(scrub(res[[i]])))
+temp <- temp[ order(row.names(temp)), ]
+smoothScatter(log2(temp),w$wgbs,xlim = c(0,15),main='scrub')
+
+temp1 <- data.frame(totalIntensities(dyeBiasCorr(noob(res[[i]]))))
+temp2 <- getBetas(dyeBiasCorr(noob(res[[i]])))
+smoothScatter(log2(temp1[,1]),temp2,xlim = c(0,15),main='noob')
+
+
+
+for (i in 1:dim(a1)[1])
+{
+  if (! a1$Accession[i] %in% a2$Accession)
+  {
+    #a1 <- a1[-c(i),]
+    print(i)
+    #a1 <- a1[!(a1$Accession==a1$Accession[i]),]
+  }
+}
+
+# ~/zhoulab/labsoftware/shared_Renv/shims/R4.0.4
+#
+require(data.table)
+t1 <- c()
+files <- list.files(path="/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/samplesheets", pattern=".tsv", full.names=TRUE, recursive=FALSE)
+for(i in 1:length(files)) # collect column names
+{
+  t1 <- c(t1,tolower(colnames(as.data.frame(fread(files[i])))))
+  t1 <- unique(t1)
+}
+
+# Add detail info to the sheet
+df2 <- as.data.frame(fread(files[1]))
+df1 <- data.frame(matrix(NA, nrow = dim(df2)[1], ncol = length(t1)))
+colnames(df1) <- t1
+for(i in 1:dim(df2)[2])
+{
+  index <- which(colnames(df1) == tolower(colnames(df2)[i]))
+  df1[,index] <- df2[,i]
+}
+df1$gse <- gsub('.{33}$', '', unlist(strsplit(files[1], "/"))[8]) # add GSE info
+for(i in 2: length(files))
+{
+  df2 <- as.data.frame(fread(files[i]))
+  df <- data.frame(matrix(NA, nrow = dim(df2)[1], ncol = length(t1)))
+  colnames(df) <- t1
+  for(j in 1:dim(df2)[2])
+  {
+    index <- which(colnames(df) == tolower(colnames(df2)[j]))
+    df[,index] <- df2[,j]
+  }
+  df$gse <- gsub('.{33}$', '', unlist(strsplit(files[i], "/"))[8])
+  df1 <- rbind(df,df1)
+}
+
+# Add platform to it, default is ''. If all the platform type is given, this step can be shorter with group index
+s <- readRDS('~/scr1_wany/sheet/samplesheet.rds')
+s$platform <- ''
+l_epic <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/EPIC')
+l_epic <- gsub('.{12}$', '', l_epic)
+l_hm450 <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/HM450')
+l_hm450 <- gsub('.{12}$', '', l_hm450)
+l_hm27 <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/HM27')
+l_hm27 <- gsub('.{12}$', '', l_hm27)
+l_mammal40 <- list.files('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/Mammal40')
+l_mammal40 <- gsub('.{12}$', '', l_mammal40)
+
+t <- s[1:dim(s)[1], ]
+
+for(i in 1:dim(t)[1]) 
+{
+  s1 <- t[i,]$geo
+  if(s1 %in% l_epic)
+  {
+    t[i,]$platform <- 'EPIC'
+  }
+  else if(s1 %in% l_hm450)
+  {
+    t[i,]$platform <- 'HM450'
+  }
+  else if(s1 %in% l_hm27)
+  {
+    t[i,]$platform <- 'HM27'
+  }
+  else if(s1 %in% l_mammal40)
+  {
+    t[i,]$platform <- 'Mammal40'
+  }
+}
+
+#files <- list.files(path="/home/wany/scr1_wany/sheet/2040", pattern=".rds", full.names=TRUE, recursive=FALSE)
+#
+#sheet <- readRDS(files[1])
+#
+#for(i in 2:length(files))
+#{
+#  sheet_t <- readRDS(files[i])
+#  sheet <- rbind(sheet,sheet_t)
+#}
+
+t<-c() 
+for(i in 1:2027)
+{
+  if(grepl('sex',colnames(new_s)[i]))
+  {
+    t<-c(t,i)
+  }
+}
+
+library(tidyverse)
+new_s1 <- unite(s1, gsegeo, colnames(s1)[8], colnames(s1)[13], remove=TRUE,sep=' ')
+new_s1 <- unite(new_s, gender, 'sex', 'gender1','sex_of_newborn', remove=TRUE,sep='')
+unique(s[,13])
+new_s[,8][new_s[,8]=='f'] <- 'female'
+
+t <- unique(new_s$gender)
+for(i in 1:length(t))
+{
+  if(!(grepl('male',t[i]) | grepl('female',t[i])))
+  {
+    s[,13][s[,13]==1] <- NA
+  }
+}
+
+for(i in 1:2018)
+{
+  if(grepl('sex',colnames(s2)[i]))
+  {
+    print(colnames(s2)[i])
+    print(i)
+  }
+}
+colnames(s)[grepl('gender',colnames(s))]
+
+# column 13 and 8
+
+#remove racegendersite, ageaccelerationresidualbasedontrainingandtestdata,
+# when merge 0,1,2, make sure they from same dataset.
+
+# Only 'gender' matters, sex doesn't in v3
+
+# All platform information can find in:
+# https://github.com/zhou-lab/labjournal/blob/main/zhouw3/2021/20210319_GEO_download.org#platforms
+
+hm450 <- read_excel("~/scr1_wany/sheet/HM450.xlsx")
+hm450 <- data.frame(hm450)
+for(i in 1:1465)
+{
+  s1$platform[s1$gse==hm450$Accession[i]] <- 'HM450'
+}
+
+epic <- read_excel("~/scr1_wany/sheet/EPIC.xlsx")
+epic <- data.frame(epic)
+for(i in 1:409)
+{
+  s1$platform[s1$gse==epic$Accession[i]] <- 'EPIC'
+}
+
+hm27 <- read_excel("~/scr1_wany/sheet/HM270.xlsx")
+hm27 <- data.frame(hm27)
+for(i in 1:346)
+{
+  s1$platform[s1$gse==hm27$Accession[i]] <- 'HM27'
+}
+
+s1$platform[grepl('-',s1$gse)] <- 'other'
+s1$platform[grepl('-GPL13534',s1$gse)] <- 'HM450'
+s1$platform[grepl('-GPL16304',s1$gse)] <- 'HM450'
+s1$platform[grepl('-GPL21145',s1$gse)] <- 'EPIC'
+s1$platform[grepl('-GPL28271',s1$gse)] <- 'Mammal40'
+s1$platform[grepl('-GPL8490',s1$gse)] <- 'HM27'
+
+
+write.table(df,"newdf.txt",sep="\t",row.names=FALSE)
+write.table(s, file='/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/algarram/20210517_celltype.tsv', quote=FALSE, sep='\t', row.names = FALSE)
+
+#[1] "GSM1572841" "GSM1572878" "GSM1572912" "GSM1572951"
+#[6] "GSM1572952" "GSM1573014" "GSM1573019" "GSM1573029"
+
+x = 'premature.ovarian.failure,.secondary.amennorhea'
+unique(s$gse[s$diseasestate == x])
+unique(s$gsm[s$diseasestate == x])
+
+unique(s$samplestore[s$gse == 'GSE106600'])
+
+######################################################################
+
+#0406
+s <- readRDS('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/20210406_sheetshort_cp.rds')
+s$diseasestate <- tolower(s$diseasestate)
+unique(s$diseasestate)[grep('hnscc',unique(s$diseasestate))]
+
+s$diseasestate[grep('parkinson',s$diseasestate)] <- "parkinson's disease"
+unique(s$gsm[s$diseasestate == "all.diagnosis" & s$gse == 'GSE116057'])
+
+s$diseasestate[s$diseasestate == 'disease' & s$gse == 'GSE115797'] <- "psoriasis"
+
+s$diseasestate[s$diseasestate == 'disease'] <- 'oral squamous cell carcinoma'
+
+
+s$cellline[s$gse == 'GSE34639'] <- 'unknown'
+
+s$samplestore[s$gse == 'GSE122126'] <- 'FFPE'
+
+s$diseasestate[grep('normal',s$diseasestate)] <- 'normal'
+
+saveRDS(s,'/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/202104019_sheetshort_cp.rds')
+
+######################################################################
+
+sset <- mclapply(searchIDATprefixes(p),readIDATpair,mc.cores=20)
+
+library(sesame)
+s <- readRDS('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/202104019_sheetshort_cp.rds')
+s1 <- s[s$IDAT == 'T',]
+s1 <- s1[s1$platform == 'EPIC' | s1$platform == 'HM450',]
+
+mr <- function(x){
+  meanIntensity(readIDATpair(x))
+}
+# t1 <- s1$platform # i.e. HM450
+t2 <- s1$gsm # i.e. GSM937260
+t3 <- paste('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/HM450/',t2,sep='')
+s1$meanIntensity <- mclapply(as.list(t3),mr,mc.cores=20)
+
+
+library(sesame)
+library(Xmisc)
+s1 <- readRDS('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/cp100.rds')
+t0 <- sum(!is.na(s1$meanIntensity))+1
+for(i in t0:88125)
+{
+  t1 <- s1$gsm[i]
+  t21 <- paste('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/EPIC/',t1,sep='')
+  t22 <- paste('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/HM450/',t1,sep='')
+  t23 <- paste('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/Mammal40/',t1,sep='')
+  if(is.file(t21))
+  {
+    t3 <- readIDATpair(t21)
+  }
+  else if(is.file(t22))
+  {
+    t3 <- readIDATpair(t22)
+  }
+  else if(is.file(t23))
+  {
+    t3 <- readIDATpair(t23)
+  }
+  s1$meanIntensity[i] <- meanIntensity(t3)
+  s1$PBSR[i] <- sum(pval(t3)<0.05)/length(pval(t3))
+  saveRDS(s1,'/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/cp100.rds')
+}
+
+######################################################################
+s1 <- readRDS('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/202104019_sheetshort_cp.rds')
+s1 <- s1[s1$IDAT == 'T',]
+s1$platform2 <- 'HM27'
+library(Xmisc)
+for(i in 1:88125)
+{
+  t1 <- s1$gsm[i]
+  t21 <- paste('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/EPIC/',t1,'_Red.idat.gz',sep='')
+  t22 <- paste('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/HM450/',t1,'_Red.idat.gz',sep='')
+  t23 <- paste('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/IDATs/Mammal40/',t1,'_Red.idat.gz',sep='')
+  
+  if(is.file(t21))
+  {
+    s1$platform2[i] <- 'EPIC'
+  }
+  else if(is.file(t22))
+  {
+    s1$platform2[i] <- 'HM450'
+  }
+  else if(is.file(t23))
+  {
+    s1$platform2[i] <- 'Mammal40'
+  }
+}
+saveRDS(s1,'/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/202104024_samplesheet_twoplatform.rds')
+
+######################################################################
+
+s <- read_excel('~/scr1_wany/upload/20210414_All_GEOsamples.xlsx')
+s1 <- readRDS('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/202104025_meanInten_poobahSR.rds')
+s <- data.frame(s)
+s$meanIntensity <- NA
+s$pOOBAHsuccessRate <- NA
+
+s2 <- s1[!duplicated(s1$gsm),]
+
+for(i in s2$gsm)
+{
+  s$pOOBAHsuccessRate[s$gsm == i] <- s2$pOOBAHsuccessRate[s2$gsm == i]
+  s$meanIntensity[s$gsm == i] <- s2$meanIntensity[s2$gsm == i]
+}
+
+for(i in s2$gsm)
+{
+  if(s2$FFPE[s2$gsm == i] == 1 & s2$FF[s2$gsm == i] == 1)
+  {
+    s$samplestore1[s$gsm == i] <- NA
+  }
+  else if (s2$FFPE[s2$gsm == i] == 1 & s2$FF[s2$gsm == i] == 0)
+  {
+    s$samplestore1[s$gsm == i] <- 'FFPE'
+  }
+  else if (s2$FFPE[s2$gsm == i] == 0 & s2$FF[s2$gsm == i] == 1)
+  {
+    s$samplestore1[s$gsm == i] <- 'FF'
+  }
+  else if (s2$FFPE[s2$gsm == i] == 0 & s2$FF[s2$gsm == i] == 0)
+  {
+    s$samplestore1[s$gsm == i] <- NA
+  }
+}
+
+######################################################################
+library(stringr)
+
+s <- read.table('~/scr1_wany/upload/result_wo_IDAT.txt', header = FALSE)
+s1 <- data.frame(matrix(NA, nrow = 0 , ncol = 3))
+colnames(s1) <- c('gsm','FF','FFPE')
+
+for(i in 1:dim(s)[1])
+{
+  if(str_detect(s[i,],'GSM'))
+  {
+    s2 <- data.frame(matrix(NA, nrow = 1 , ncol = 3))
+    colnames(s2) <- c('gsm','FF','FFPE')
+    s2$gsm <- s[i,]
+    
+    t <- c();j=i+1
+    while (j <= dim(s)[1] & !str_detect(s[j,],'GSM')) {
+      t <- c(t,s[j,])
+      j <- j + 1
+    }
+    if(('FFPE'%in%t) & !('FF')%in%t)
+    {
+      s2$FF <- 0
+      s2$FFPE <- 1
+    }
+    else if(!('FFPE'%in%t) & !('FF')%in%t)
+    {
+      s2$FF <- 0
+      s2$FFPE <- 0
+    }
+    else if(!('FFPE'%in%t) & ('FF')%in%t)
+    {
+      s2$FF <- 1
+      s2$FFPE <- 0
+    }
+    else if(('FFPE'%in%t) & ('FF')%in%t)
+    {
+      s2$FF <- 1
+      s2$FFPE <- 1
+    }
+    
+    s1 <- rbind(s1,s2) 
+  }
+}
+
+######################################################################
+
+s <- readRDS('/mnt/isilon/zhou_lab/projects/20191212_GEO_datasets/wany/20210328_gendermerge_v3.rds')
+colnames(s)[grepl('type',colnames(s))]
+| grepl('tissue',colnames(s)) | grepl('cell',colnames(s))
+s1 <- s[,grepl('type',colnames(s))]
+
+# tissue, cell, cancer, geno type
+s <- readRDS('~/scr1_wany/upload/type/cell_tissue_geno_cancer.rds')
+
+s1 <- s[,grepl('cell',colnames(s))]
+s1 <- s1[-c(9)]
+saveRDS(s1,'~/scr1_wany/upload/type/cell_type.rds')
+
+s1 <- s[,grepl('tissue',colnames(s))]
+saveRDS(s1,'~/scr1_wany/upload/type/tissue_type.rds')
+
+s1 <- s[,grepl('tumor',colnames(s))]
+saveRDS(s1,'~/scr1_wany/upload/type/tumor_type.rds')
+
+s1 <- s[,grepl('geno',colnames(s))]
+saveRDS(s1,'~/scr1_wany/upload/type/geno_type.rds')
+
+######################################################################
+
+s <- readRDS('~/scr1_wany/upload/type/20210513_celltype.rds')
+
+s1$gsm[which(s1$donor.cell.type == 'dermal')]
+
+s1$celltype[126854:126858] <- 'hematopoietic cells'
+
+s1$celltype[which(s1$donor.cell.type == 'dermal')] <- 'dermal fibroblast'
+
+s$gsm[which(s$celltype == 'CD34+.HSCs')]
+s$celltype[which(s[,7] == 'tumor_DNA_FFPE')] <- "Schelmm's Canal endothelial cells"
+
+s$tissuetype[which(s$tissue.subtype=='Enriched')] <- 'Sperm'
+s[which(s[,3]=='Enriched'),2]
+
+unique(s$gsm[which(s$tissuetype == "NA /+/ colorectal.mucosa")])
+unique(s$gsm[which(s$tissuetype == "Molar /+/ NA")])
+
+s$cellline[which(s$tissuetype == "NA /+/ H9-NK2.hESCs")] <- "H9-NK2.hESCs"
+s$tissuetype[which(s$tissuetype == "NA /+/ Mutation-positive.Lynch.syndrome.control..Genomic.DNA.from.FFPE.normal.colorectal.mucosa")] <- "colorectal.mucosa"
+
+saveRDS(s,'~/scr1_wany/upload/type/20210605_tissue1.rds')
+######################################################################
+
+library(readxl)
+s <- read_excel("~/Desktop/20210414_All_GEOsamples.xlsx")
+s <- data.frame(s)
+slices <- c(sum(s$sex=='NA'),sum(s$sex=='male'),sum(s$sex=='female'))
+lbls <- c("NA", "Male", "Female")
+
+slices1 <- c(sum(s$platform=='HM27'),sum(s$platform=='HM450'),sum(s$platform=='EPIC'),sum(s$platform=='Mammal40'))
+lbls1 <- c("HM27","HM450","EPIC","Mammal40")
+
+slices2 <- c(sum(s$samplestore=='NA'),sum(s$samplestore=='FF'),sum(s$samplestore=='FFPE'))
+lbls2 <- c("NA","FF","FFPE")
+
+par(mar=c(1,1,1,1))
+pie(slices2, labels = lbls2, main="Pie Chart of Sample Storage")
+s$meanIntensity[which(s$meanIntensity == "NA")] <- NA
+plot(density(as.numeric(s$meanIntensity[!is.na(s$meanIntensity)])),
+     xlab = 'meanIntensity',main='MeanIntensity Density Plot')
+
+# How many samples has IDATs
+
+
+{"mode":"full","isActive":false}
+
+# 07/23/2021
+
+data_dic <- read_xlsx("~/Desktop/YANG2/analyst-take-home-task-master/data-dictionary.xlsx")
+data_dic <- as.data.frame(data_dic)
+
+allergies <- read.csv("~/Desktop/YANG2/analyst-take-home-task-master/datasets/allergies.csv")
+encounters <- read.csv("~/Desktop/YANG2/analyst-take-home-task-master/datasets/encounters.csv")
+medications <- read.csv("~/Desktop/YANG2/analyst-take-home-task-master/datasets/medications.csv")
+patients <- read.csv("~/Desktop/YANG2/analyst-take-home-task-master/datasets/patients.csv")
+procedures <- read.csv("~/Desktop/YANG2/analyst-take-home-task-master/datasets/procedures.csv")
+
+# The hospital encounter occurs after July 15, 1999
+# The patient’s age at time of encounter is between 18 and 35 (Patient is considered to be 35 until turning 36)
+colnames(patients)[1] <- "PATIENT"
+t <- merge(encounters,patients,by="PATIENT")
+t1 <- unlist(strsplit(t$START," "))
+t$START_date <- t1[seq(1, length(t1), 2)]
+t$START_time <- t1[seq(2, length(t1), 2)]
+t$age_at_encounter <- difftime(t$START_date,t$BIRTHDATE)
+
+# convert from calendar year to seconds
+t2 <- t[as.numeric(t$age_at_encounter) >= 5.676e+8 
+        & as.numeric(t$age_at_encounter) <= 1.135e+9 
+        & as.numeric(difftime(t$START_date,"1999-7-15")) > 0,]
+# The patient’s visit is an encounter for drug overdose
+t3 <- t2[complete.cases(t2$REASONDESCRIPTION),]
+t3 <- t3[t3$REASONDESCRIPTION == "Drug overdose",]
+
+# DEATH_AT_VISIT_IND
+t3$death_at_visit <- t3$START_date == t3$DEATHDATE
